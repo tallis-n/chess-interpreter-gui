@@ -47,6 +47,8 @@ class ChessBoard:
             self._data[48 + i] = Chesspiece('P', self._alpheb[i], 2)
         # determines whose turn it is
         self._turn = -1
+        self._knight_pos_array = [-17, -15, -10, -6, 6, 10, 15, 17]
+
 
     def __str__(self):
         return_string = '  a b c d e f g h  \n'
@@ -71,12 +73,18 @@ class ChessBoard:
 
     def update(self, move: str):
         # pawn movement
-        if len(move) == 2:
-            index_to = self.alpha2absolute_coord((move[0], int(move[1])))
-            one_away_index = self.alpha2absolute_coord((move[0], int(move[1]) - 1))
-            two_away_index = self.alpha2absolute_coord((move[0], int(move[1]) - 2))
-            one_away = self._data[one_away_index]
-            two_away = self._data[two_away_index]
+        if len(move) == 2 or (len(move) == 3 and move[0].upper() == 'P'):
+            index_to = self.alpha2absolute_coord((move[-2], int(move[-1])))
+            if self._turn == -1:
+                one_away_index = self.alpha2absolute_coord((move[-2], int(move[-1]) - 1))
+                two_away_index = self.alpha2absolute_coord((move[-2], int(move[-1]) - 2))
+                one_away = self._data[one_away_index]
+                two_away = self._data[two_away_index]
+            elif self._turn == 1:
+                one_away_index = self.alpha2absolute_coord((move[-2], int(move[-1]) + 1))
+                two_away_index = self.alpha2absolute_coord((move[-2], int(move[-1]) + 2))
+                one_away = self._data[one_away_index]
+                two_away = self._data[two_away_index]
             if one_away is None and two_away is None:
                 print("Move is illegal")
                 return
@@ -85,7 +93,6 @@ class ChessBoard:
                     one_away.update_move_twice()
                     self._data[index_to] = self._data[one_away_index]
                     self._data[one_away_index] = None
-                    return
                 else:
                     print("Move is illegal")
                     return
@@ -94,11 +101,28 @@ class ChessBoard:
                     two_away.update_move_twice()
                     self._data[index_to] = self._data[two_away_index]
                     self._data[two_away_index] = None
-                    return
                 else:
                     print("Move is illegal")
                     return
         # handle knight movement
-        if move[0] == "N":
-            pass
-        pass
+        if move[0].upper() == "N" and len(move) == 3:
+            index_to = self.alpha2absolute_coord((move[1], int(move[2])))
+            moved = False
+            for ele in self._knight_pos_array:
+                item = index_to + ele
+                piece_at = self._data[item]
+                if (item >=0 and item <= 63) and piece_at is not None:
+                    if self._turn == -1 and piece_at.get_type() == "N":
+                        self._data[index_to] = piece_at
+                        self._data[item] = None
+                        moved = True
+                        break
+                    elif self._turn == 1 and piece_at.get_type() == "n":
+                        self._data[index_to] = piece_at
+                        self._data[item] = None
+                        moved = True
+                        break
+            if moved == False:
+                print("Move is illegal")
+                return
+        self._turn *= -1
