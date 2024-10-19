@@ -1,5 +1,6 @@
 from chess_visualisation import Chesspiece
 from chess_visualisation import ChessBoard
+import tkinter as tk
 
 chess_board = ChessBoard()
 print(str(chess_board))
