@@ -4,7 +4,6 @@ class Chesspiece:
         self._x = x
         self._y = y
         self._can_move_twice = False
-        self._promoted = False
         if self._type == 'P' or self._type == 'p':
             self._can_move_twice = True
 
@@ -23,6 +22,18 @@ class Chesspiece:
     def update_move_twice(self):
         self._can_move_twice = False
 
+    def promote(self, **kwargs):
+        valid = False
+        type = kwargs('type')
+        while not valid:
+            if type is None:
+                type = input("What type would you like to promote to? ")
+            if type.upper() == 'N' or type.upper() == 'R' or type.upper() == 'Q' or type.upper() == 'B':
+                valid = True
+            else:
+                type = None
+                print("Type invalid, try again.")
+        self._type = type
 
 
 class ChessBoard:
@@ -48,7 +59,7 @@ class ChessBoard:
         # determines whose turn it is
         self._turn = -1
         self._knight_pos_array = [-17, -15, -10, -6, 6, 10, 15, 17]
-
+        self._check = False
 
     def __str__(self):
         return_string = '  a b c d e f g h  \n'
@@ -72,7 +83,7 @@ class ChessBoard:
         return abs_coord
 
     def update(self, move: str):
-        # pawn movement
+        # pawn movement, excluding captures
         if len(move) == 2 or (len(move) == 3 and move[0].upper() == 'P'):
             index_to = self.alpha2absolute_coord((move[-2], int(move[-1])))
             if self._turn == -1:
@@ -104,9 +115,16 @@ class ChessBoard:
                 else:
                     print("Move is illegal")
                     return
-        # handle knight movement
-        if move[0].upper() == "N" and len(move) == 3:
-            index_to = self.alpha2absolute_coord((move[1], int(move[2])))
+        # handle knight movement, including captures
+        if move[0].upper() == "N":
+            index_to = self.alpha2absolute_coord((move[-2], int(move[-1])))
+            if self._data[index_to] is not None:
+                if self._turn == -1 and self._data[index_to].get_type().isupper():
+                    print("Cannot capture your own piece!")
+                    return
+                if self._turn == 1 and self._data[index_to].get_type().islower():
+                    print("Cannot capture your own piece!")
+                    return
             moved = False
             for ele in self._knight_pos_array:
                 item = index_to + ele
@@ -125,4 +143,149 @@ class ChessBoard:
             if moved == False:
                 print("Move is illegal")
                 return
+        # handle rook movement, including captures
+        if move[0].upper() == "R":
+            index_to = self.alpha2absolute_coord((move[-2], int(move[-1])))
+            moved = False
+            if self._data[index_to] is not None:
+                if self._turn == -1 and self._data[index_to].get_type().isupper():
+                    print("Cannot capture your own piece!")
+                    return
+                if self._turn == 1 and self._data[index_to].get_type().islower():
+                    print("Cannot capture your own piece!")
+                    return
+            # find position of rook and handle collisions
+            index_at = self.check_rook_movement(index_to, "Q")
+            if index_at != -1:
+                self._data[index_to] = self._data[index_at]
+                self._data[index_at] = None
+                moved = True
+            if moved == False:
+                print("You haven't moved! Invalid Move!")
+                return
+        # handle bishop movement, including captures, so much recycled code
+        if move[0].upper() == "B":
+            index_to = self.alpha2absolute_coord((move[-2], int(move[-1])))
+            moved = False
+            if self._data[index_to] is not None:
+                if self._turn == -1 and self._data[index_to].get_type().isupper():
+                    print("Cannot capture your own piece!")
+                    return
+                if self._turn == 1 and self._data[index_to].get_type().islower():
+                    print("Cannot capture your own piece!")
+                    return
+            # find position of bishop and handle collisions
+            index_at = self.check_bishop_movement(index_to, "B")
+            if index_at != -1:
+                self._data[index_to] = self._data[index_at]
+                self._data[index_at] = None
+                moved = True
+            if moved == False:
+                print("You haven't moved! Invalid Move!")
+                return
+        # handle queen movement, including captures, even more recycled code
+        if move[0].upper() = "Q"
+            index_to = self.alpha2absolute_coord((move[-2], int(move[-1])))
+            moved = False
+            if self._data[index_to] is not None:
+                if self._turn == -1 and self._data[index_to].get_type().isupper():
+                    print("Cannot capture your own piece!")
+                    return
+                if self._turn == 1 and self._data[index_to].get_type().islower():
+                    print("Cannot capture your own piece!")
+                    return
+            # position of queen - rook direction
+            index_at = self.check_rook_movement(index_to, "Q")
+            if index_at != -1:
+                self._data[index_to] = self._data[index_at]
+                self._data[index_at] = None
+                moved = True
+            # position of queen - bishop direction
+            index_at = self.check_bishop_movement(index_to, "Q")
+            if index_at != -1:
+                self._data[index_to] = self._data[index_at]
+                self._data[index_at] = None
+                moved = True
+            # if move has not occurred
+            if moved == False:
+                print("You haven't moved! Invalid Move!")
+                return
+        # handle pawn captures
+        possible_first_chars = ["P", "a", "b", "c", "d", "e", "f", "g", "h"]
+        valid = False
+        for item in possible_first_chars:
+            if move[0] == item
+                valid = True
+                break
+        if valid == False or len(move) != 4:
+            print("Invalid Move!")
+            return
+        index_to = self.alpha2absolute_coord((move[-2], int(move[-1])))
+        # this doesn't work with doubled pawns in some cases - handle later
+        if move[0] < move[2] or move[0].upper() == "P":
+            cur_check = index_to + 7
+            if self._data[cur_check] is not None:
+                if (self._data[cur_check].get_type() == "P" and self._turn == -1) or self._data[cur_check].get_type() == "p" and self._turn == 1:
+                    self._data[index_to] = self._data[cur_check]
+                    self._data[cur_check] = None
+            cur_check = index_to - 1
+            if self._data[cur_check] is not None:
+                if (self._data[cur_check].get_type() == "P" and self._turn == -1) or self._data[cur_check].get_type() == "p" and self._turn == 1:
+                    self._data[index_to] = self._data[cur_check]
+                    # en passant factor!
+                    self._data[index_to + 8 * self._turn] = None
+                    self._data[cur_check] = None
+        else:
+            cur_check = index_to - 7
+            if self._data[cur_check] is not None:
+                if (self._data[cur_check].get_type() == "P" and self._turn == -1) or self._data[cur_check].get_type() == "p" and self._turn == 1:
+                    self._data[index_to] = self._data[cur_check]
+                    self._data[cur_check] = None
+            cur_check = index_to + 1
+            if self._data[cur_check] is not None:
+                if (self._data[cur_check].get_type() == "P" and self._turn == -1) or self._data[cur_check].get_type() == "p" and self._turn == 1:
+                    self._data[index_to] = self._data[cur_check]
+                    # en passant factor!
+                    self._data[index_to + 8 * self._turn] = None
+                    self._data[cur_check] = None
         self._turn *= -1
+
+        def check_bishop_movement(self, index_to, type_of):
+            i = 0
+            factor = -7
+            while i < 4:
+                factor *= -1
+                if i == 2:
+                    factor = 9
+                check_index = index_to + factor
+                while self._data[check_index] is None and check_index >= 0 and check_index <= 63:
+                    check_index += factor
+                if check_index < 0 or check_index > 63:
+                    i += 1
+                    continue
+                if (self._data[check_index].get_type() == type_of and self._turn == -1) or (self._data[check_index].get_type() == type_of.lower() and self._turn == 1):
+                    return check_index
+                else:
+                    i += 1
+                    continue
+            return -1
+        
+        def check_rook_movement(self, index_to, type_of):
+            i = 0
+            factor = -1
+            while i < 4:
+                factor *= -1
+                if i == 2:
+                    factor *= 8
+                check_index = index_to + factor
+                while self._data[check_index] is None and check_index >= 0 and check_index <= 63:
+                    check_index += factor
+                if check_index < 0 or check_index > 63:
+                    i += 1
+                    continue
+                if (self._data[check_index].get_type() == type_of and self._turn == -1) or (self._data[check_index].get_type() == type_of.lower() and self._turn == 1):
+                    return check_index
+                else:
+                    i += 1
+                    continue
+            return -1
