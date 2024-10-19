@@ -184,7 +184,7 @@ class ChessBoard:
                 print("You haven't moved! Invalid Move!")
                 return
         # handle queen movement, including captures, even more recycled code
-        if move[0].upper() = "Q"
+        if move[0].upper() == "Q":
             index_to = self.alpha2absolute_coord((move[-2], int(move[-1])))
             moved = False
             if self._data[index_to] is not None:
@@ -211,43 +211,47 @@ class ChessBoard:
                 print("You haven't moved! Invalid Move!")
                 return
         # handle pawn captures
-        possible_first_chars = ["P", "a", "b", "c", "d", "e", "f", "g", "h"]
-        valid = False
-        for item in possible_first_chars:
-            if move[0] == item
-                valid = True
-                break
-        if valid == False or len(move) != 4:
-            print("Invalid Move!")
+        if len(move) == 4:
+            possible_first_chars = ["P", "a", "b", "c", "d", "e", "f", "g", "h"]
+            valid = False
+            for item in possible_first_chars:
+                if move[0] == item:
+                    valid = True
+                    break
+            if valid == False :
+                print("Invalid Move!")
+                return
+            index_to = self.alpha2absolute_coord((move[-2], int(move[-1])))
+            # this doesn't work with doubled pawns in some cases - handle later
+            if move[0] < move[2] or move[0].upper() == "P":
+                cur_check = index_to + 7
+                if self._data[cur_check] is not None:
+                    if (self._data[cur_check].get_type() == "P" and self._turn == -1) or self._data[cur_check].get_type() == "p" and self._turn == 1:
+                        self._data[index_to] = self._data[cur_check]
+                        self._data[cur_check] = None
+                cur_check = index_to - 1
+                if self._data[cur_check] is not None:
+                    if (self._data[cur_check].get_type() == "P" and self._turn == -1) or self._data[cur_check].get_type() == "p" and self._turn == 1:
+                        self._data[index_to] = self._data[cur_check]
+                        # en passant factor!
+                        self._data[index_to + 8 * self._turn] = None
+                        self._data[cur_check] = None
+            else:
+                cur_check = index_to - 7
+                if self._data[cur_check] is not None:
+                    if (self._data[cur_check].get_type() == "P" and self._turn == -1) or self._data[cur_check].get_type() == "p" and self._turn == 1:
+                        self._data[index_to] = self._data[cur_check]
+                        self._data[cur_check] = None
+                cur_check = index_to + 1
+                if self._data[cur_check] is not None:
+                    if (self._data[cur_check].get_type() == "P" and self._turn == -1) or self._data[cur_check].get_type() == "p" and self._turn == 1:
+                        self._data[index_to] = self._data[cur_check]
+                        # en passant factor!
+                        self._data[index_to + 8 * self._turn] = None
+                        self._data[cur_check] = None
+        elif len(move) > 4 and moved == False:
+            print("Move is illegal")
             return
-        index_to = self.alpha2absolute_coord((move[-2], int(move[-1])))
-        # this doesn't work with doubled pawns in some cases - handle later
-        if move[0] < move[2] or move[0].upper() == "P":
-            cur_check = index_to + 7
-            if self._data[cur_check] is not None:
-                if (self._data[cur_check].get_type() == "P" and self._turn == -1) or self._data[cur_check].get_type() == "p" and self._turn == 1:
-                    self._data[index_to] = self._data[cur_check]
-                    self._data[cur_check] = None
-            cur_check = index_to - 1
-            if self._data[cur_check] is not None:
-                if (self._data[cur_check].get_type() == "P" and self._turn == -1) or self._data[cur_check].get_type() == "p" and self._turn == 1:
-                    self._data[index_to] = self._data[cur_check]
-                    # en passant factor!
-                    self._data[index_to + 8 * self._turn] = None
-                    self._data[cur_check] = None
-        else:
-            cur_check = index_to - 7
-            if self._data[cur_check] is not None:
-                if (self._data[cur_check].get_type() == "P" and self._turn == -1) or self._data[cur_check].get_type() == "p" and self._turn == 1:
-                    self._data[index_to] = self._data[cur_check]
-                    self._data[cur_check] = None
-            cur_check = index_to + 1
-            if self._data[cur_check] is not None:
-                if (self._data[cur_check].get_type() == "P" and self._turn == -1) or self._data[cur_check].get_type() == "p" and self._turn == 1:
-                    self._data[index_to] = self._data[cur_check]
-                    # en passant factor!
-                    self._data[index_to + 8 * self._turn] = None
-                    self._data[cur_check] = None
         self._turn *= -1
 
         def check_bishop_movement(self, index_to, type_of):
