@@ -131,6 +131,10 @@ class ChessBoard:
         # handle knight movement, including captures, specifying which knight not currently supported
         elif move[0].upper() == "N":
             index_to = self.alpha2absolute_coord((move[-2], int(move[-1])))
+            column_correct = True
+            if (move[1] != move[-2]) and move[1] != 'x':
+                column_correct = False
+                column = move[1]
             if self._data[index_to] is not None:
                 if self._turn == -1 and self._data[index_to].get_type().isupper():
                     print("Cannot capture your own piece!")
@@ -142,12 +146,14 @@ class ChessBoard:
                 item = index_to + ele
                 piece_at = self._data[item]
                 if (item >=0 and item <= 63) and piece_at is not None:
-                    if self._turn == -1 and piece_at.get_type() == "N":
+                    if not column_correct:
+                        column_correct = self.check_piece_in_file(item, column)
+                    if self._turn == -1 and piece_at.get_type() == "N" and column_correct:
                         self._data[index_to] = piece_at
                         self._data[item] = None
                         moved = True
                         break
-                    elif self._turn == 1 and piece_at.get_type() == "n":
+                    elif self._turn == 1 and piece_at.get_type() == "n" and column_correct:
                         self._data[index_to] = piece_at
                         self._data[item] = None
                         moved = True
@@ -253,6 +259,31 @@ class ChessBoard:
             return
         self._turn *= -1
 
+    def check_piece_in_file(self, index, file):
+        match file:
+            case "a":
+                file_num = 0
+            case "b":
+                file_num = 1
+            case "c":
+                file_num = 2
+            case "d":
+                file_num = 3
+            case "e":
+                file_num = 4
+            case "f":
+                file_num = 5
+            case "g":
+                file_num = 6
+            case "h":
+                file_num = 7
+            case default:
+                return False
+        if (index % 8) == file_num:
+            return True
+        return False
+
+
     def check_bishop_movement(self, index_to, type_of):
         i = 0
         factor = -7
@@ -260,9 +291,13 @@ class ChessBoard:
             factor *= -1
             if i == 2:
                 factor = 9
-            check_index = index_to + factor
-            while self._data[check_index] is None and check_index >= 0 and check_index <= 63:
+            check_index = index_to
+            if index_to + factor >= 0 and index_to + factor <= 63:
+                check_index = index_to + factor
+            while self._data[check_index] is None:
                 check_index += factor
+                if check_index < 0 or check_index > 63:
+                    break
             if check_index < 0 or check_index > 63:
                 i += 1
                 continue
@@ -280,9 +315,13 @@ class ChessBoard:
             factor *= -1
             if i == 2:
                 factor *= 8
-            check_index = index_to + factor
-            while self._data[check_index] is None and check_index >= 0 and check_index <= 63:
+            check_index = index_to
+            if index_to + factor >= 0 and index_to + factor <= 63:
+                check_index = index_to + factor
+            while self._data[check_index] is None:
                 check_index += factor
+                if check_index < 0 or check_index > 63:
+                    break
             if check_index < 0 or check_index > 63:
                 i += 1
                 continue
