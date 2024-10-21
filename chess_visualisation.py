@@ -63,8 +63,11 @@ class ChessBoard:
         # determines whose turn it is
         self._turn = -1
         self._knight_pos_array = [-17, -15, -10, -6, 6, 10, 15, 17]
+        self._king_pos_array = [-9, -8, -7, -1, 1, 7, 8, 9]
         self._check = False
         self._en_passant_index = -1
+        self._white_can_castle = (True, True)
+        self._black_can_castle = (True, True)
 
     def __str__(self):
         return_string = '  a b c d e f g h  \n'
@@ -88,6 +91,9 @@ class ChessBoard:
         return abs_coord
 
     def update(self, move: str):
+        # KING MOVES AND CASTLING UNDEFINED
+        if move[-1] == '+' or move[-1] == '#':
+            move = move[0:-1]
         if self._en_passant_index != -1:
             self._data[self._en_passant_index].update_en_passant()
             self._en_passant_index = -1
@@ -128,7 +134,7 @@ class ChessBoard:
                 else:
                     print("Move is illegal")
                     return
-        # handle knight movement, including captures, specifying which knight not currently supported
+        # handle knight movement, including captures 
         elif move[0].upper() == "N":
             index_to = self.alpha2absolute_coord((move[-2], int(move[-1])))
             column_correct = True
@@ -144,8 +150,11 @@ class ChessBoard:
                     return
             for ele in self._knight_pos_array:
                 item = index_to + ele
-                piece_at = self._data[item]
-                if (item >=0 and item <= 63) and piece_at is not None:
+                if item >0 and item <= 63:
+                    piece_at = self._data[item]
+                else:
+                    continue
+                if piece_at is not None:
                     if not column_correct:
                         column_correct = self.check_piece_in_file(item, column)
                     if self._turn == -1 and piece_at.get_type() == "N" and column_correct:
@@ -161,7 +170,67 @@ class ChessBoard:
             if moved == False:
                 print("Move is illegal")
                 return
-        # handle rook movement, including captures
+        # handle king movement, including captures
+        elif move[0].upper() == "K": 
+            index_to = self.alpha2absolute_coord((move[-2], int(move[-1])))
+            if self._data[index_to] is not None:
+                if self._turn == -1 and self._data[index_to].get_type().isupper():
+                    print("Cannot capture your own piece!")
+                    return
+                if self._turn == 1 and self._data[index_to].get_type().islower():
+                    print("Cannot capture your own piece!")
+                    return
+            for ele in self._king_pos_array:
+                item = index_to + ele
+                if item >0 and item <= 63:
+                    piece_at = self._data[item]
+                else:
+                    continue
+                if piece_at is not None:
+                    if self._turn == -1 and piece_at.get_type() == "K":
+                        self._data[index_to] = piece_at
+                        self._data[item] = None
+                        moved = True
+                        self._white_can_castle = (False, False)
+                        break
+                    elif self._turn == 1 and piece_at.get_type() == "k":
+                        self._data[index_to] = piece_at
+                        self._data[item] = None
+                        moved = True
+                        self._black_can_castle = (False, False)
+                        break
+            if moved == False:
+                print("Move is illegal")
+                return
+        elif move[0].upper() == "O":
+            if self._turn == -1:
+                if move == "O-O" and self._data[61] is None and self._data[62] is None:
+                    self._data[62] = self._data[60]
+                    self._data[61] = self._data[64]
+                    self._data[61], self._data[62] = None, None
+                    moved = True
+                    self._white_can_castle = False, False
+                elif move == "O-O-O" and self._data[57] is None and self._data[58] is None and self._data[59] is None:
+                    self._data[58] = self._data[60]
+                    self._data[57] = self._data[56]
+                    self._data[60], self._data[56] = None, None
+                    moved = True
+                    self._white_can_castle = False, False
+            elif self._turn == 1:
+                if move == "O-O-O" and self._data[1] is None and self._data[2] is None and self._data[3] is None:
+                    self._data[2], self._data[3] = self._data[4], self._data[0]
+                    self._data[4], self._data[0] = None, None
+                    moved = True
+                    self._black_can_castle = False, False
+                elif move == "O-O" and self._data[5] is None and self._data[6] is None:
+                    self._data[6], self._data[5] = self._data[4], self_data[7]
+                    self._data[4], self._data[7] = None, None
+                    moved = True
+                    self._black_can_castle = False, False
+            if moved == False:
+                print("Move invalid!")
+                return
+        # handle rook movement, including captures, cannot specify which column currently - implementation easy
         elif move[0].upper() == "R":
             index_to = self.alpha2absolute_coord((move[-2], int(move[-1])))
             if self._data[index_to] is not None:
@@ -172,7 +241,7 @@ class ChessBoard:
                     print("Cannot capture your own piece!")
                     return
             # find position of rook and handle collisions
-            index_at = self.check_rook_movement(index_to, "Q")
+            index_at = self.check_rook_movement(index_to, "R")
             if index_at != -1:
                 self._data[index_to] = self._data[index_at]
                 self._data[index_at] = None
