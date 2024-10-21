@@ -66,6 +66,7 @@ class ChessBoard:
         self._king_pos_array = [-9, -8, -7, -1, 1, 7, 8, 9]
         self._check = False
         self._en_passant_index = -1
+        self._moved = True
         self._white_can_castle = (True, True)
         self._black_can_castle = (True, True)
 
@@ -91,7 +92,6 @@ class ChessBoard:
         return abs_coord
 
     def update(self, move: str):
-        # KING MOVES AND CASTLING UNDEFINED
         if move[-1] == '+' or move[-1] == '#':
             move = move[0:-1]
         if self._en_passant_index != -1:
@@ -99,6 +99,9 @@ class ChessBoard:
             self._en_passant_index = -1
         # pawn movement, excluding captures
         moved = False
+        if self._moved == False:
+            raise Exception("hey yall! you didn't move!")
+        self._moved = False
         if len(move) == 2 or (len(move) == 3 and move[0].upper() == 'P'):
             index_to = self.alpha2absolute_coord((move[-2], int(move[-1])))
             if self._turn == -1:
@@ -308,7 +311,10 @@ class ChessBoard:
             index_to = self.alpha2absolute_coord((move[-2], int(move[-1])))
             # this doesn't work with doubled pawns in some cases with en passant - handle later. also this never happens
             if move[0] < move[2] or move[0].upper() == "P":
-                cur_check = index_to + 7
+                if self._turn == -1 :
+                    cur_check = index_to + 7
+                else:
+                    cur_check = index_to - 9
                 if self._data[cur_check] is not None:
                     if (self._data[cur_check].get_type() == "P" and self._turn == -1) or self._data[cur_check].get_type() == "p" and self._turn == 1:
                         if self._data[index_to] is None and self._data[index_to + 8 * self._turn] is not None:
@@ -316,7 +322,10 @@ class ChessBoard:
                         self._data[index_to] = self._data[cur_check]
                         self._data[cur_check] = None
             else:
-                cur_check = index_to - 7
+                if self._turn == -1:
+                    cur_check = index_to + 9
+                else:
+                    cur_check = index_to - 7
                 if self._data[cur_check] is not None:
                     if (self._data[cur_check].get_type() == "P" and self._turn == -1) or self._data[cur_check].get_type() == "p" and self._turn == 1:
                         if self._data[index_to] is None and self._data[index_to + 8 * self._turn] is not None:
@@ -327,6 +336,7 @@ class ChessBoard:
             print("Move is illegal")
             return
         self._turn *= -1
+        self._moved = True
 
     def check_piece_in_file(self, index, file):
         match file:
