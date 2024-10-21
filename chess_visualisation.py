@@ -94,6 +94,11 @@ class ChessBoard:
     def update(self, move: str):
         if move[-1] == '+' or move[-1] == '#':
             move = move[0:-1]
+        for i in range(0, len(move)):
+            if i >= len(move):
+                break
+            if move[i] == " " or move[i] == ".":
+                move = move[0:i-1] + move[i+1:len(move) - 1]
         if self._en_passant_index != -1:
             self._data[self._en_passant_index].update_en_passant()
             self._en_passant_index = -1
@@ -233,9 +238,14 @@ class ChessBoard:
             if moved == False:
                 print("Move invalid!")
                 return
-        # handle rook movement, including captures, cannot specify which column currently - implementation easy
+        # handle rook movement, including captures
         elif move[0].upper() == "R":
             index_to = self.alpha2absolute_coord((move[-2], int(move[-1])))
+            column_correct = True
+            column = "$"
+            if (len(move) == 4) and move[1] != 'x':
+                column_correct = False
+                column = move[1]
             if self._data[index_to] is not None:
                 if self._turn == -1 and self._data[index_to].get_type().isupper():
                     print("Cannot capture your own piece!")
@@ -244,7 +254,7 @@ class ChessBoard:
                     print("Cannot capture your own piece!")
                     return
             # find position of rook and handle collisions
-            index_at = self.check_rook_movement(index_to, "R")
+            index_at = self.check_rook_movement(index_to, "R", column)
             if index_at != -1:
                 self._data[index_to] = self._data[index_at]
                 self._data[index_at] = None
@@ -274,6 +284,11 @@ class ChessBoard:
         # handle queen movement, including captures, even more recycled code
         elif move[0].upper() == "Q":
             index_to = self.alpha2absolute_coord((move[-2], int(move[-1])))
+            column_correct = True
+            column = "$"
+            if (len(move) == 4) and move[1] != 'x':
+                column_correct = False
+                column = move[1]
             if self._data[index_to] is not None:
                 if self._turn == -1 and self._data[index_to].get_type().isupper():
                     print("Cannot capture your own piece!")
@@ -282,7 +297,7 @@ class ChessBoard:
                     print("Cannot capture your own piece!")
                     return
             # position of queen - rook direction
-            index_at = self.check_rook_movement(index_to, "Q")
+            index_at = self.check_rook_movement(index_to, "Q", column)
             if index_at != -1:
                 self._data[index_to] = self._data[index_at]
                 self._data[index_at] = None
@@ -387,7 +402,7 @@ class ChessBoard:
                 continue
         return -1
         
-    def check_rook_movement(self, index_to, type_of):
+    def check_rook_movement(self, index_to, type_of, column):
         i = 0
         factor = -1
         while i < 4:
@@ -402,6 +417,11 @@ class ChessBoard:
                 if check_index < 0 or check_index > 63:
                     break
             if check_index < 0 or check_index > 63:
+                i += 1
+                continue
+            print(column)
+            print(check_index)
+            if not self.check_piece_in_file(check_index, column) and column != "$":
                 i += 1
                 continue
             if (self._data[check_index].get_type() == type_of and self._turn == -1) or (self._data[check_index].get_type() == type_of.lower() and self._turn == 1):
