@@ -231,7 +231,7 @@ class ChessBoard:
                     moved = True
                     self._black_can_castle = False, False
                 elif move == "O-O" and self._data[5] is None and self._data[6] is None:
-                    self._data[6], self._data[5] = self._data[4], self_data[7]
+                    self._data[6], self._data[5] = self._data[4], self._data[7]
                     self._data[4], self._data[7] = None, None
                     moved = True
                     self._black_can_castle = False, False
@@ -352,6 +352,9 @@ class ChessBoard:
             return
         self._turn *= -1
         self._moved = True
+
+    def return_data(self):
+        return self._data
 
     def check_piece_in_file(self, index, file):
         match file:
