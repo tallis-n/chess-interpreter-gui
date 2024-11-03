@@ -68,8 +68,6 @@ class ChessBoard:
         self._en_passant_index = -1
         self._white_can_castle = (True, True)
         self._black_can_castle = (True, True)
-        self._white_pos_array = [48, 49, 50, 51, 52, 53, 54, 55, 56, 57, 58, 59, 60, 61, 62, 63]
-        self._black_pos_array = [0 ,  1,  2,  3,  4,  5,  6,  7,  8,  9, 10, 11, 12, 13, 14, 15]
 
     def __str__(self):
         return_string = '  a b c d e f g h  \n'
@@ -92,7 +90,23 @@ class ChessBoard:
         abs_coord += (8 - coord[1]) * 8
         return abs_coord
 
-    def return_available_moves(self):
+    def absolute2alpha_coord(self, coord):
+        move_str = ''
+
+    def return_available_moves(self, turn):
+        available_pieces = []
+        available_moves  = []
+        for k in range(0, 64):
+            if self._data[k] is not None and turn == 1 and self._data[k].is_lower():
+                available_pieces.append[k]
+            if self._data[k] is not None and turn == -1 and self._data[k].is_upper():
+                available_pieces.append[k]
+        for item in available_pieces:
+            # this is a total pain in the ass argh rip
+            if self._data[item].get_type() == 'p':
+                if self._data[item + 8] is None:
+                    available_moves.append(absolute2alpha_coord)
+
 
     def update(self, move: str):
         if move[-1] == '+' or move[-1] == '#' or move[-1] == "\n":
