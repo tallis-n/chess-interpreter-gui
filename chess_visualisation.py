@@ -69,6 +69,8 @@ class ChessBoard:
         self._moved = True
         self._white_can_castle = (True, True)
         self._black_can_castle = (True, True)
+        self._white_pos_array = [48, 49, 50, 51, 52, 53, 54, 55, 56, 57, 58, 59, 60, 61, 62, 63]
+        self._black_pos_array = [0 ,  1,  2,  3,  4,  5,  6,  7,  8,  9, 10, 11, 12, 13, 14, 15]
 
     def __str__(self):
         return_string = '  a b c d e f g h  \n'
@@ -90,6 +92,8 @@ class ChessBoard:
                 abs_coord += i
         abs_coord += (8 - coord[1]) * 8
         return abs_coord
+
+    def return_available_moves(self):
 
     def update(self, move: str):
         if move[-1] == '+' or move[-1] == '#' or move[-1] == "\n":
