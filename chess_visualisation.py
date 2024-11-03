@@ -66,7 +66,6 @@ class ChessBoard:
         self._king_pos_array = [-9, -8, -7, -1, 1, 7, 8, 9]
         self._check = False
         self._en_passant_index = -1
-        self._moved = True
         self._white_can_castle = (True, True)
         self._black_can_castle = (True, True)
         self._white_pos_array = [48, 49, 50, 51, 52, 53, 54, 55, 56, 57, 58, 59, 60, 61, 62, 63]
@@ -108,9 +107,6 @@ class ChessBoard:
             self._en_passant_index = -1
         # pawn movement, excluding captures
         moved = False
-        if self._moved == False:
-            raise Exception("hey yall! you didn't move!")
-        self._moved = False
         if len(move) == 2 or (len(move) == 3 and move[0].upper() == 'P'):
             index_to = self.alpha2absolute_coord((move[-2], int(move[-1])))
             if self._turn == -1:
@@ -355,7 +351,6 @@ class ChessBoard:
             print("Move is illegal")
             return
         self._turn *= -1
-        self._moved = True
 
     def return_data(self):
         return self._data
