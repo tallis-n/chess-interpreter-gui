@@ -30,6 +30,11 @@ class ChessGUI:
                     k1 = k + (1 / 2)
                 self._canvas.create_rectangle(80 * j, 80 * (2 * k1 + 1), 80 * i, 80 * 2 * k1, fill="forest green")
         self.draw_pieces()
+        self._move_text_box = tk.Text(self._window, height = 5, width = 40)
+        self._move_text_box.pack(side=LEFT)
+        self._button = tk.Button(self._window, text= "Submit", command = self.update_entry)
+        self._button.pack(side=LEFT)
+        self._window.bind('<Return>', (lambda event: self.update_entry()))
         self._window.mainloop()
 
     def draw_pieces(self):
@@ -49,7 +54,12 @@ class ChessGUI:
                 x = 0
                 y += 80
 
-    def update_entry(self, move):
+    def update_entry_button_push(self, event):
+        self.update_entry()
+
+    def update_entry(self):
+        move = self._move_text_box.get(1.0, "end-1c")
+        self._move_text_box.delete("1.0", "end")
         self._chess_board.update(move)
         self.draw_pieces()
 

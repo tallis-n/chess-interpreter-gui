@@ -92,7 +92,7 @@ class ChessBoard:
         return abs_coord
 
     def update(self, move: str):
-        if move[-1] == '+' or move[-1] == '#':
+        if move[-1] == '+' or move[-1] == '#' or move[-1] == "\n":
             move = move[0:-1]
         for i in range(0, len(move)):
             if i >= len(move):
