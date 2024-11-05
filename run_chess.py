@@ -3,7 +3,8 @@ from chess_visualisation import ChessBoard
 import tkinter as tk
 from PIL import Image, ImageTk
 from tkinter.constants import *
-
+import random as rand
+import time
 
 class ChessGUI:
     def __init__(self):
@@ -61,6 +62,12 @@ class ChessGUI:
         move = self._move_text_box.get(1.0, "end-1c")
         self._move_text_box.delete("1.0", "end")
         self._chess_board.update(move)
+        self.draw_pieces()
+        available_moves = self._chess_board.return_available_moves()
+        rand1 = rand.randrange(0, len(available_moves))
+        print(available_moves)
+        enemy_move = available_moves[rand1]
+        self._chess_board.update(enemy_move)
         self.draw_pieces()
 
 

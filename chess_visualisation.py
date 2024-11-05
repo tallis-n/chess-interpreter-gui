@@ -274,9 +274,9 @@ class ChessBoard:
                         continue
                     if self._data[item + ele] is None:
                         available_moves.append('k' + self.absolute2alpha_coord(check_index))
-                    if self._data[item + ele].get_type().islower() and self._turn == -1:
+                    elif self._data[item + ele].get_type().islower() and self._turn == -1:
                         available_moves.append('k' + self.absolute2alpha_coord(item + ele))
-                    if self._data[item + ele].get_type().isupper() and self._turn == 1:
+                    elif self._data[item + ele].get_type().isupper() and self._turn == 1:
                         available_moves.append('k' + self.absolute2alpha_coord(item + ele))
         return available_moves
     
