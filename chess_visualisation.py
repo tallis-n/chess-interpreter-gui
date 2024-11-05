@@ -62,7 +62,7 @@ class ChessBoard:
             self._data[48 + i] = Chesspiece('P', self._alpheb[i], 2)
         # determines whose turn it is
         self._turn = -1
-        self._knight_pos_array = [-17, -15, -10, -6, 6, 10, 15, 17]
+        self._knight_pos_array = [-17, -15, -10, -6, 15, 17, 6, 10]
         self._king_pos_array = [-9, -8, -7, -1, 1, 7, 8, 9]
         self._check = False
         self._en_passant_index = -1
@@ -98,41 +98,93 @@ class ChessBoard:
         move_str += str(coord_adjusted // 8 + 1)
         return move_str
 
+    def check_knight_moves(self, knight_square):
+        knight_array = []
+        for item in self._knight_pos_array:
+            knight_array.append(item)
+        if knight_square // 8 == 7:
+            knight_array.remove(15)
+            knight_array.remove(17)
+            knight_array.remove(6)
+            knight_array.remove(10)
+        elif knight_square // 8 == 6:
+            knight_array.remove(15)
+            knight_array.remove(17)
+        elif knight_square // 8 == 0:
+            knight_array.remove(-15)
+            knight_array.remove(-17)
+            knight_array.remove(-10)
+            knight_array.remove(-6)
+        elif knight_square // 8 == 1:
+            knight_array.remove(-15)
+            knight_array.remove(-17)
+        if knight_square % 8 == 0:
+            if -10 in knight_array:
+                knight_array.remove(-10)
+            if 6 in knight_array:
+                knight_array.remove(6)
+            if -17 in knight_array:
+                knight_array.remove(-17)
+            if 15 in knight_array:
+                knight_array.remove(15)
+        elif knight_square % 8 == 1:
+            if -10 in knight_array:
+                knight_array.remove(-10)
+            if 6 in knight_array:
+                knight_array.remove(6)
+        elif knight_square % 8 == 7:
+            if -6 in knight_array:
+                knight_array.remove(-6)
+            if 10 in knight_array:
+                knight_array.remove(10)
+            if -15 in knight_array:
+                knight_array.remove(-15)
+            if 17 in knight_array:
+                knight_array.remove(17)
+        elif knight_square % 8 == 6:
+            if -6 in knight_array:
+                knight_array.remove(-6)
+            if 10 in knight_array:
+                knight_array.remove(10)
+        return knight_array
+
+
     def return_available_moves(self):
         available_pieces = []
         available_moves  = []
         for k in range(0, 64):
-            if self._data[k] is not None and self._turn == 1 and self._data[k].is_lower():
-                available_pieces.append[k]
-            if self._data[k] is not None and self._turn == -1 and self._data[k].is_upper():
-                available_pieces.append[k]
+            if self._data[k] is not None and self._turn == 1 and self._data[k].get_type().islower():
+                available_pieces.append(k)
+            if self._data[k] is not None and self._turn == -1 and self._data[k].get_type().isupper():
+                available_pieces.append(k)
         for item in available_pieces:
             # adding possible pawn moves
             if self._data[item].get_type() == 'p':
                 if self._data[item + 8] is None:
-                    available_moves.append(absolute2alpha_coord(item + 8))
+                    available_moves.append(self.absolute2alpha_coord(item + 8))
                 if self._data[item].move_twice() and self._data[item + 16] is None and self._data[item + 8] is None:
-                    available_moves.append(absolute2alpha_coord(item + 16))
-                if self._data[item + 7] is not None and self._data[item + 7].get_type().is_upper():
-                    available_moves.append(self._letter_array[item % 8] + 'x' + absolute2alpha_coord(item + 7))
-                if self._data[item + 9] is not None and self._data[item + 9].get_type().is_upper():
-                    available_moves.append(self._letter_array[item % 8] + 'x' + absolute2alpha_coord(item + 9))
+                    available_moves.append(self.absolute2alpha_coord(item + 16))
+                if self._data[item + 7] is not None and self._data[item + 7].get_type().isupper():
+                    available_moves.append(self._letter_array[item % 8] + 'x' + self.absolute2alpha_coord(item + 7))
+                if self._data[item + 9] is not None and self._data[item + 9].get_type().isupper():
+                    available_moves.append(self._letter_array[item % 8] + 'x' + self.absolute2alpha_coord(item + 9))
             if self._data[item].get_type() == 'P':
                 if self._data[item - 8] is None:
-                    available_moves.append(absolute2alpha_coord(item - 8))
+                    available_moves.append(self.absolute2alpha_coord(item - 8))
                 if self._data[item].move_twice() and self._data[item - 16] is None and self._data[item - 8] is None:
-                    available_moves.append(absolute2alpha_coord(item - 16))
-                if self._data[item - 7] is not None and self._data[item - 7].get_type().is_lower():
-                    available_moves.append(self._letter_array[item % 8] + 'x' + absolute2alpha_coord(item - 7))
-                if self._data[item - 9] is not None and self._data[item - 9].get_type().is_lower():
-                    available_moves.append(self._letter_array[item % 8] + 'x' + absolute2alpha_coord(item - 9))
+                    available_moves.append(self.absolute2alpha_coord(item - 16))
+                if self._data[item - 7] is not None and self._data[item - 7].get_type().islower():
+                    available_moves.append(self._letter_array[item % 8] + 'x' + self.absolute2alpha_coord(item - 7))
+                if self._data[item - 9] is not None and self._data[item - 9].get_type().islower():
+                    available_moves.append(self._letter_array[item % 8] + 'x' + self.absolute2alpha_coord(item - 9))
             # adding possible knight moves
             if self._data[item].get_type().upper() == "N":
-                for ele in self._knight_pos_array:
+                knight_array = self.check_knight_moves(item)
+                for ele in knight_array:
                     if ele + item < 0 or ele + item > 63:
                         continue
-                    if self._data[ele + item] is not None:
-                        available_moves.append('n' + self._letter_array[item % 8] + absolute2alpha_coord(ele + item))
+                    if self._data[ele + item] is None:
+                        available_moves.append('n' + self._letter_array[item % 8] + self.absolute2alpha_coord(ele + item))
             # adding possible bishop moves
             if self._data[item].get_type().upper() == "B":
                 i = 0
@@ -145,13 +197,15 @@ class ChessBoard:
                     if item + factor >= 0 and item + factor <= 63:
                         check_index = item + factor
                     while self._data[check_index] is None:
-                        available_moves.append('b' + absolute2alpha_coord(check_index))
+                        available_moves.append('b' + self.absolute2alpha_coord(check_index))
                         check_index += factor
                         if check_index < 0 or check_index > 63:
                             break
-                        if check_index < 0 or check_index > 63:
-                            i += 1
-                            continue
+                    if check_index >= 0 and check_index <= 63 and self._data[check_index].get_type().islower() and self._turn == -1:
+                        available_moves.append('b' + self.absolute2alpha_coord(check_index))
+                    if check_index >= 0 and check_index <= 63 and self._data[check_index].get_type().isupper() and self._turn == 1:
+                        available_moves.append('b' + self.absolute2alpha_coord(check_index))
+                    i += 1
             # adding possible rook moves
             if self._data[item].get_type().upper() == "R":
                 i = 0
@@ -163,6 +217,67 @@ class ChessBoard:
                     check_index = item
                     if item + factor >= 0 and item + factor <= 63:
                         check_index += factor
+                    while self._data[check_index] is None:
+                        available_moves.append('r' + self.absolute2alpha_coord(check_index))
+                        check_index += factor
+                        if check_index < 0 or check_index > 63:
+                            break
+                    if check_index >= 0 and check_index <= 63 and self._data[check_index].get_type().islower() and self._turn == -1:
+                        available_moves.append('r' + self.absolute2alpha_coord(check_index))
+                    if check_index >= 0 and check_index <= 63 and self._data[check_index].get_type().isupper() and self._turn == 1:
+                        available_moves.append('r' + self.absolute2alpha_coord(check_index))
+                    i += 1
+            # adding possible queen moves
+            if self._data[item].get_type().upper() == "Q":
+                i = 0
+                factor = -7
+                while i < 4:
+                    factor *= 1
+                    if i == 2:
+                        factor == 9
+                    check_index = item
+                    if item + factor >= 0 and item + factor <= 63:
+                        check_index = item + factor
+                    while self._data[check_index] is None:
+                        available_moves.append('q' + self.absolute2alpha_coord(check_index))
+                        check_index += factor
+                        if check_index < 0 or check_index > 63:
+                            break
+                    if check_index >= 0 and check_index <= 63 and self._data[check_index].get_type().islower() and self._turn == -1:
+                        available_moves.append('q' + self.absolute2alpha_coord(check_index))
+                    if check_index >= 0 and check_index <= 63 and self._data[check_index].get_type().isupper() and self._turn == 1:
+                        available_moves.append('q' + self.absolute2alpha_coord(check_index))
+                    i += 1
+                i = 0
+                factor = -1
+                while i < 4:
+                    factor *= -1
+                    if i == 2:
+                        factor *= 8
+                    check_index = item
+                    if item + factor >= 0 and item + factor <= 63:
+                        check_index += factor
+                    while self._data[check_index] is None:
+                        available_moves.append('q' + self.absolute2alpha_coord(check_index))
+                        check_index += factor
+                        if check_index < 0 or check_index > 63:
+                            break
+                    if check_index >= 0 and check_index <= 63 and self._data[check_index].get_type().islower() and self._turn == -1:
+                        available_moves.append('q' + self.absolute2alpha_coord(check_index))
+                    if check_index >= 0 and check_index <= 63 and self._data[check_index].get_type().isupper() and self._turn == 1:
+                        available_moves.append('q' + self.aabsolute2alpha_coord(check_index))
+                    i += 1
+            # adding possible king moves
+            if self._data[item].get_type().upper() == "K":
+                for ele in self._king_pos_array:
+                    if item + ele < 0 or item + ele > 63:
+                        continue
+                    if self._data[item + ele] is None:
+                        available_moves.append('k' + self.absolute2alpha_coord(check_index))
+                    if self._data[item + ele].get_type().islower() and self._turn == -1:
+                        available_moves.append('k' + self.absolute2alpha_coord(item + ele))
+                    if self._data[item + ele].get_type().isupper() and self._turn == 1:
+                        available_moves.append('k' + self.absolute2alpha_coord(item + ele))
         return available_moves
     
     def return_data(self):
