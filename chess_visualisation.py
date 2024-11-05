@@ -68,6 +68,7 @@ class ChessBoard:
         self._en_passant_index = -1
         self._white_can_castle = (True, True)
         self._black_can_castle = (True, True)
+        self._letter_array = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h']
 
     def __str__(self):
         return_string = '  a b c d e f g h  \n'
@@ -92,21 +93,80 @@ class ChessBoard:
 
     def absolute2alpha_coord(self, coord):
         move_str = ''
+        move_str += self._letter_array[coord % 8]
+        coord_adjusted = 63 - coord
+        move_str += str(coord_adjusted // 8 + 1)
+        return move_str
 
-    def return_available_moves(self, turn):
+    def return_available_moves(self):
         available_pieces = []
         available_moves  = []
         for k in range(0, 64):
-            if self._data[k] is not None and turn == 1 and self._data[k].is_lower():
+            if self._data[k] is not None and self._turn == 1 and self._data[k].is_lower():
                 available_pieces.append[k]
-            if self._data[k] is not None and turn == -1 and self._data[k].is_upper():
+            if self._data[k] is not None and self._turn == -1 and self._data[k].is_upper():
                 available_pieces.append[k]
         for item in available_pieces:
-            # this is a total pain in the ass argh rip
+            # adding possible pawn moves
             if self._data[item].get_type() == 'p':
                 if self._data[item + 8] is None:
-                    available_moves.append(absolute2alpha_coord)
-
+                    available_moves.append(absolute2alpha_coord(item + 8))
+                if self._data[item].move_twice() and self._data[item + 16] is None and self._data[item + 8] is None:
+                    available_moves.append(absolute2alpha_coord(item + 16))
+                if self._data[item + 7] is not None and self._data[item + 7].get_type().is_upper():
+                    available_moves.append(self._letter_array[item % 8] + 'x' + absolute2alpha_coord(item + 7))
+                if self._data[item + 9] is not None and self._data[item + 9].get_type().is_upper():
+                    available_moves.append(self._letter_array[item % 8] + 'x' + absolute2alpha_coord(item + 9))
+            if self._data[item].get_type() == 'P':
+                if self._data[item - 8] is None:
+                    available_moves.append(absolute2alpha_coord(item - 8))
+                if self._data[item].move_twice() and self._data[item - 16] is None and self._data[item - 8] is None:
+                    available_moves.append(absolute2alpha_coord(item - 16))
+                if self._data[item - 7] is not None and self._data[item - 7].get_type().is_lower():
+                    available_moves.append(self._letter_array[item % 8] + 'x' + absolute2alpha_coord(item - 7))
+                if self._data[item - 9] is not None and self._data[item - 9].get_type().is_lower():
+                    available_moves.append(self._letter_array[item % 8] + 'x' + absolute2alpha_coord(item - 9))
+            # adding possible knight moves
+            if self._data[item].get_type().upper() == "N":
+                for ele in self._knight_pos_array:
+                    if ele + item < 0 or ele + item > 63:
+                        continue
+                    if self._data[ele + item] is not None:
+                        available_moves.append('n' + self._letter_array[item % 8] + absolute2alpha_coord(ele + item))
+            # adding possible bishop moves
+            if self._data[item].get_type().upper() == "B":
+                i = 0
+                factor = -7
+                while i < 4:
+                    factor *= 1
+                    if i == 2:
+                        factor == 9
+                    check_index = item
+                    if item + factor >= 0 and item + factor <= 63:
+                        check_index = item + factor
+                    while self._data[check_index] is None:
+                        available_moves.append('b' + absolute2alpha_coord(check_index))
+                        check_index += factor
+                        if check_index < 0 or check_index > 63:
+                            break
+                        if check_index < 0 or check_index > 63:
+                            i += 1
+                            continue
+            # adding possible rook moves
+            if self._data[item].get_type().upper() == "R":
+                i = 0
+                factor = -1
+                while i < 4:
+                    factor *= -1
+                    if i == 2:
+                        factor *= 8
+                    check_index = item
+                    if item + factor >= 0 and item + factor <= 63:
+                        check_index += factor
+        return available_moves
+    
+    def return_data(self):
+        return self._data
 
     def update(self, move: str):
         if move[-1] == '+' or move[-1] == '#' or move[-1] == "\n":
@@ -365,9 +425,6 @@ class ChessBoard:
             print("Move is illegal")
             return
         self._turn *= -1
-
-    def return_data(self):
-        return self._data
 
     def check_piece_in_file(self, index, file):
         match file:
