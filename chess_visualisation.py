@@ -148,7 +148,6 @@ class ChessBoard:
                 knight_array.remove(10)
         return knight_array
 
-
     def return_available_moves(self):
         available_pieces = []
         available_moves  = []
@@ -192,7 +191,7 @@ class ChessBoard:
                 while i < 4:
                     factor *= 1
                     if i == 2:
-                        factor == 9
+                        factor = 9
                     check_index = item
                     if item + factor >= 0 and item + factor <= 63:
                         check_index = item + factor
@@ -234,7 +233,7 @@ class ChessBoard:
                 while i < 4:
                     factor *= 1
                     if i == 2:
-                        factor == 9
+                        factor = 9
                     check_index = item
                     if item + factor >= 0 and item + factor <= 63:
                         check_index = item + factor
@@ -265,7 +264,7 @@ class ChessBoard:
                     if check_index >= 0 and check_index <= 63 and self._data[check_index].get_type().islower() and self._turn == -1:
                         available_moves.append('q' + self.absolute2alpha_coord(check_index))
                     if check_index >= 0 and check_index <= 63 and self._data[check_index].get_type().isupper() and self._turn == 1:
-                        available_moves.append('q' + self.aabsolute2alpha_coord(check_index))
+                        available_moves.append('q' + self.absolute2alpha_coord(check_index))
                     i += 1
             # adding possible king moves
             if self._data[item].get_type().upper() == "K":
@@ -273,7 +272,7 @@ class ChessBoard:
                     if item + ele < 0 or item + ele > 63:
                         continue
                     if self._data[item + ele] is None:
-                        available_moves.append('k' + self.absolute2alpha_coord(check_index))
+                        available_moves.append('k' + self.absolute2alpha_coord(item + ele))
                     elif self._data[item + ele].get_type().islower() and self._turn == -1:
                         available_moves.append('k' + self.absolute2alpha_coord(item + ele))
                     elif self._data[item + ele].get_type().isupper() and self._turn == 1:
@@ -286,6 +285,12 @@ class ChessBoard:
     def update(self, move: str):
         if move[-1] == '+' or move[-1] == '#' or move[-1] == "\n":
             move = move[0:-1]
+        if move[-1].upper() == 'Q' or move[-1].upper() == 'R' or move[-1].upper() == 'B' or move[-1].upper() == 'N':
+            type_to_promote_to = move[-1]
+            if move[-3] == '8' or move[-3] == '1' and move[-2] == "=":
+                square_to = self.alpha2absolute_coord((move[-4], move[-3]))
+                self.update(move[0:-2])
+                self._data[square_to].promote(type_to_promote_to)
         for i in range(0, len(move)):
             if i >= len(move):
                 break
