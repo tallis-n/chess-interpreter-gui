@@ -1,0 +1,5 @@
+bounds not checked appropriately for rook and bishop movement
+check allowed when castling
+no check for checkmate
+available moves doesn't account for check and doesn't detect checkmate
+ridiculous knight moves are allowed
