@@ -69,6 +69,8 @@ class ChessBoard:
         self._white_can_castle = (True, True)
         self._black_can_castle = (True, True)
         self._letter_array = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h']
+        self._white_king_pos = 60
+        self._black_king_pos = 4
 
     def __str__(self):
         return_string = '  a b c d e f g h  \n'
@@ -97,6 +99,80 @@ class ChessBoard:
         coord_adjusted = 63 - coord
         move_str += str(coord_adjusted // 8 + 1)
         return move_str
+
+    def checkxtwo(self, side):
+        if side == "black":
+            pos = self._black_king_pos
+        elif side == "white":
+            pos = self._white_king_pos
+        else:
+            raise Exception()
+        # I wrote this knowing it was broken kekw
+        for item in self._knight_pos_array:
+            if pos + item < 0 or pos + item > 63:
+                continue
+            if self._data[pos + item] is None:
+                continue
+            if self._data[pos + item].get_type() == "N" and side == "Black":
+                return True
+            if self._data[pos + item].get_type() == "n" and side == "White":
+                return True
+        # check bishop directions
+        i = 0
+        factor = -7
+        while i < 4:
+            factor *= -1
+            if i == 2:
+                factor = 9
+            item = pos
+            check_index = item
+            if item + factor >= 0 and item + factor <= 63:
+                check_index = item + factor
+            while self._data[check_index] is None:
+                check_index += factor
+                if check_index < 0 or check_index > 63:
+                    break
+            if check_index < 0 or check_index > 63:
+                i += 1
+                continue
+            print(check_index)
+            if self._data[check_index].get_type() == "B" and side == "black":
+                return True
+            if self._data[check_index].get_type() == "Q" and side == "black":
+                return True
+            if self._data[check_index].get_type() == "b" and side == "white":
+                return True
+            if self._data[check_index].get_type() == "q" and side == "white":
+                return True
+            i += 1
+        # check rook direction
+        i = 0
+        factor = -1
+        while i < 4:
+            factor *= -1
+            if i == 2:
+                factor *= 8
+            item = pos
+            check_index = item
+            if item + factor >= 0 and item + factor <= 63:
+                check_index += factor
+            while self._data[check_index] is None:
+                check_index += factor
+                if check_index < 0 or check_index > 63:
+                    break
+            if check_index < 0 or check_index > 63:
+                i += 1
+                continue
+            if self._data[check_index] == "R" and side == "black":
+                return True
+            if self._data[check_index] == "Q" and side == "black":
+                return True
+            if self._data[check_index] == "r" and side == "white":
+                return True
+            if self._data[check_index] == "q" and side == "white":
+                return True
+            i += 1
+        return False
 
     def check_knight_moves(self, knight_square):
         knight_array = []
@@ -189,7 +265,7 @@ class ChessBoard:
                 i = 0
                 factor = -7
                 while i < 4:
-                    factor *= 1
+                    factor *= -1
                     if i == 2:
                         factor = 9
                     check_index = item
@@ -283,6 +359,9 @@ class ChessBoard:
         return self._data
 
     def update(self, move: str):
+        prev = []
+        for item in self._data:
+            prev.append(item)
         if move[-1] == '+' or move[-1] == '#' or move[-1] == "\n":
             move = move[0:-1]
         if move[-1].upper() == 'Q' or move[-1].upper() == 'R' or move[-1].upper() == 'B' or move[-1].upper() == 'N':
@@ -320,6 +399,7 @@ class ChessBoard:
                 if one_away.get_type() == 'P' or one_away.get_type() == 'p':
                     one_away.update_move_twice()
                     self._data[index_to] = self._data[one_away_index]
+                    check_index = one_away_index
                     self._data[one_away_index] = None
                     moved = True
                 else:
@@ -329,6 +409,7 @@ class ChessBoard:
                 if two_away.move_twice():
                     two_away.update_move_twice()
                     self._data[index_to] = self._data[two_away_index]
+                    check_index = two_away_index
                     self._data[two_away_index] = None
                     moved = True
                     self._data[index_to].update_en_passant()
@@ -361,11 +442,13 @@ class ChessBoard:
                         column_correct = self.check_piece_in_file(item, column)
                     if self._turn == -1 and piece_at.get_type() == "N" and column_correct:
                         self._data[index_to] = piece_at
+                        check_index = item
                         self._data[item] = None
                         moved = True
                         break
                     elif self._turn == 1 and piece_at.get_type() == "n" and column_correct:
                         self._data[index_to] = piece_at
+                        check_index = item
                         self._data[item] = None
                         moved = True
                         break
@@ -391,13 +474,17 @@ class ChessBoard:
                 if piece_at is not None:
                     if self._turn == -1 and piece_at.get_type() == "K":
                         self._data[index_to] = piece_at
+                        check_index = item
                         self._data[item] = None
+                        self._white_king_pos = index_to
                         moved = True
                         self._white_can_castle = (False, False)
                         break
                     elif self._turn == 1 and piece_at.get_type() == "k":
                         self._data[index_to] = piece_at
+                        check_index = item
                         self._data[item] = None
+                        self._black_king_pos = index_to
                         moved = True
                         self._black_can_castle = (False, False)
                         break
@@ -410,23 +497,27 @@ class ChessBoard:
                     self._data[62] = self._data[60]
                     self._data[61] = self._data[64]
                     self._data[61], self._data[62] = None, None
+                    self._white_king_pos = 62
                     moved = True
                     self._white_can_castle = False, False
                 elif move == "O-O-O" and self._data[57] is None and self._data[58] is None and self._data[59] is None:
                     self._data[58] = self._data[60]
                     self._data[57] = self._data[56]
                     self._data[60], self._data[56] = None, None
+                    self._white_king_pos = 58
                     moved = True
                     self._white_can_castle = False, False
             elif self._turn == 1:
                 if move == "O-O-O" and self._data[1] is None and self._data[2] is None and self._data[3] is None:
                     self._data[2], self._data[3] = self._data[4], self._data[0]
+                    self._black_king_pos = 2
                     self._data[4], self._data[0] = None, None
                     moved = True
                     self._black_can_castle = False, False
                 elif move == "O-O" and self._data[5] is None and self._data[6] is None:
                     self._data[6], self._data[5] = self._data[4], self._data[7]
                     self._data[4], self._data[7] = None, None
+                    self._black_king_pos = 6
                     moved = True
                     self._black_can_castle = False, False
             if moved == False:
@@ -451,6 +542,7 @@ class ChessBoard:
             index_at = self.check_rook_movement(index_to, "R", column)
             if index_at != -1:
                 self._data[index_to] = self._data[index_at]
+                check_index = index_at
                 self._data[index_at] = None
                 moved = True
             if moved == False:
@@ -471,6 +563,7 @@ class ChessBoard:
             if index_at != -1:
                 self._data[index_to] = self._data[index_at]
                 self._data[index_at] = None
+                check_index = index_at
                 moved = True
             if moved == False:
                 print("You haven't moved! Invalid Move!")
@@ -495,12 +588,14 @@ class ChessBoard:
             if index_at != -1:
                 self._data[index_to] = self._data[index_at]
                 self._data[index_at] = None
+                check_index = index_at
                 moved = True
             # position of queen - bishop direction
             index_at = self.check_bishop_movement(index_to, "Q")
             if index_at != -1:
                 self._data[index_to] = self._data[index_at]
                 self._data[index_at] = None
+                check_index = index_at
                 moved = True
             # if move has not occurred
             if moved == False:
@@ -530,6 +625,7 @@ class ChessBoard:
                             self._data[index_to + 8 * self._turn] = None
                         self._data[index_to] = self._data[cur_check]
                         self._data[cur_check] = None
+                        check_index = cur_check
             else:
                 if self._turn == -1:
                     cur_check = index_to + 9
@@ -541,10 +637,19 @@ class ChessBoard:
                             self._data[index_to + 8 * self._turn] = None
                         self._data[index_to] = self._data[cur_check]
                         self._data[cur_check] = None
+                        check_index = cur_check
         elif len(move) > 4 and moved == False:
             print("Move is illegal")
             return
-        self._turn *= -1
+        if self._turn == -1:
+            side = "white"
+        if self._turn == 1:
+            side = "black"
+        if self.checkxtwo(side):
+            self._data[check_index] = self._data[index_to]
+            self._data[index_to]    = None
+        else:
+            self._turn *= -1
 
     def check_piece_in_file(self, index, file):
         match file:
@@ -612,8 +717,6 @@ class ChessBoard:
             if check_index < 0 or check_index > 63:
                 i += 1
                 continue
-            print(column)
-            print(check_index)
             if not self.check_piece_in_file(check_index, column) and column != "$":
                 i += 1
                 continue
