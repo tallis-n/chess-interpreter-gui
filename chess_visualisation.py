@@ -23,8 +23,14 @@ class Chesspiece:
     def update_move_twice(self):
         self._can_move_twice = False
 
+    def update_move_twice_undo(self):
+        self._can_move_twice = True
+
     def update_en_passant(self):
         self._en_passant = not self._en_passant
+
+    def get_en_passant(self):
+        return self._en_passant
 
     def promote(self, **kwargs):
         valid = False
@@ -71,6 +77,10 @@ class ChessBoard:
         self._letter_array = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h']
         self._white_king_pos = 60
         self._black_king_pos = 4
+        self._last_move_from = 0
+        self._last_move_to = 0
+        self._can_undo = False
+        self._captured_piece = None
 
     def __str__(self):
         return_string = '  a b c d e f g h  \n'
@@ -100,22 +110,24 @@ class ChessBoard:
         move_str += str(coord_adjusted // 8 + 1)
         return move_str
 
-    def checkxtwo(self, side):
+    def checkxtwo(self, side, position = -1):
         if side == "black":
             pos = self._black_king_pos
         elif side == "white":
             pos = self._white_king_pos
         else:
             raise Exception()
-        # I wrote this knowing it was broken kekw
-        for item in self._knight_pos_array:
+        if position != -1:
+            pos = position
+        knight_pos_array = self.check_knight_moves(pos)
+        for item in knight_pos_array:
             if pos + item < 0 or pos + item > 63:
                 continue
             if self._data[pos + item] is None:
                 continue
-            if self._data[pos + item].get_type() == "N" and side == "Black":
+            if self._data[pos + item].get_type() == "N" and side == "black":
                 return True
-            if self._data[pos + item].get_type() == "n" and side == "White":
+            if self._data[pos + item].get_type() == "n" and side == "white":
                 return True
         # check bishop directions
         i = 0
@@ -132,10 +144,16 @@ class ChessBoard:
                 check_index += factor
                 if check_index < 0 or check_index > 63:
                     break
+                if (factor == -9 or factor == 7) and check_index % 8 == 0:
+                    break
+                if (factor == 9 or factor == -7) and check_index % 8 == 7:
+                    break
             if check_index < 0 or check_index > 63:
                 i += 1
                 continue
-            print(check_index)
+            if self._data[check_index] is None:
+                i += 1
+                continue
             if self._data[check_index].get_type() == "B" and side == "black":
                 return True
             if self._data[check_index].get_type() == "Q" and side == "black":
@@ -160,7 +178,14 @@ class ChessBoard:
                 check_index += factor
                 if check_index < 0 or check_index > 63:
                     break
+                if factor == -1 and check_index % 8 == 0:
+                    break
+                if factor == 1 and check_index % 8 == 7:
+                    break
             if check_index < 0 or check_index > 63:
+                i += 1
+                continue
+            if self._data[check_index] is None:
                 i += 1
                 continue
             if self._data[check_index] == "R" and side == "black":
@@ -224,6 +249,28 @@ class ChessBoard:
                 knight_array.remove(10)
         return knight_array
 
+    def check_king_moves(self, king_square):
+        king_array = []
+        for item in self._king_pos_array:
+            king_array.append(item)
+        if king_square // 8 == 7:
+            king_array.remove(9)
+            king_array.remove(8)
+            king_array.remove(7)
+        if king_square // 8 == 0:
+            king_array.remove(-9)
+            king_array.remove(-8)
+            king_array.remove(-7)
+        if king_square % 8 == 0:
+            king_array.remove(-9)
+            king_array.remove(-1)
+            king_array.remove(7)
+        if king_square % 8 == 7:
+            king_array.remove(-7)
+            king_array.remove(1)
+            king_array.remove(9)
+        return king_array
+
     def return_available_moves(self):
         available_pieces = []
         available_moves  = []
@@ -276,6 +323,16 @@ class ChessBoard:
                         check_index += factor
                         if check_index < 0 or check_index > 63:
                             break
+                        if (factor == -9 or factor == 7) and check_index % 8 == 0:
+                            break
+                        if (factor == 9 or factor == -7) and check_index % 8 == 7:
+                            break
+                    if check_index < 0 or check_index > 63:
+                        i += 1
+                        continue
+                    if self._data[check_index] is None:
+                        i += 1
+                        continue
                     if check_index >= 0 and check_index <= 63 and self._data[check_index].get_type().islower() and self._turn == -1:
                         available_moves.append('b' + self.absolute2alpha_coord(check_index))
                     if check_index >= 0 and check_index <= 63 and self._data[check_index].get_type().isupper() and self._turn == 1:
@@ -297,6 +354,16 @@ class ChessBoard:
                         check_index += factor
                         if check_index < 0 or check_index > 63:
                             break
+                        if factor == -1 and check_index % 8 == 0:
+                            break
+                        if factor == 1 and check_index % 8 == 7:
+                            break
+                    if check_index < 0 or check_index > 63:
+                        i += 1
+                        continue
+                    if self._data[check_index] is None:
+                        i += 1
+                        continue
                     if check_index >= 0 and check_index <= 63 and self._data[check_index].get_type().islower() and self._turn == -1:
                         available_moves.append('r' + self.absolute2alpha_coord(check_index))
                     if check_index >= 0 and check_index <= 63 and self._data[check_index].get_type().isupper() and self._turn == 1:
@@ -307,7 +374,7 @@ class ChessBoard:
                 i = 0
                 factor = -7
                 while i < 4:
-                    factor *= 1
+                    factor *= -1
                     if i == 2:
                         factor = 9
                     check_index = item
@@ -318,6 +385,16 @@ class ChessBoard:
                         check_index += factor
                         if check_index < 0 or check_index > 63:
                             break
+                        if (factor == -9 or factor == 7) and check_index % 8 == 0:
+                            break
+                        if (factor == 9 or factor == -7) and check_index % 8 == 7:
+                            break
+                    if check_index < 0 or check_index > 63:
+                        i += 1
+                        continue
+                    if self._data[check_index] is None:
+                        i += 1
+                        continue
                     if check_index >= 0 and check_index <= 63 and self._data[check_index].get_type().islower() and self._turn == -1:
                         available_moves.append('q' + self.absolute2alpha_coord(check_index))
                     if check_index >= 0 and check_index <= 63 and self._data[check_index].get_type().isupper() and self._turn == 1:
@@ -337,6 +414,17 @@ class ChessBoard:
                         check_index += factor
                         if check_index < 0 or check_index > 63:
                             break
+                        # this is tough here!
+                        if factor == -1 and check_index % 8 == 0:
+                            break
+                        if factor == 1 and check_index % 8 == 7:
+                            break
+                    if check_index < 0 or check_index > 63:
+                        i += 1
+                        continue
+                    if self._data[check_index] is None:
+                        i += 1
+                        continue
                     if check_index >= 0 and check_index <= 63 and self._data[check_index].get_type().islower() and self._turn == -1:
                         available_moves.append('q' + self.absolute2alpha_coord(check_index))
                     if check_index >= 0 and check_index <= 63 and self._data[check_index].get_type().isupper() and self._turn == 1:
@@ -344,7 +432,8 @@ class ChessBoard:
                     i += 1
             # adding possible king moves
             if self._data[item].get_type().upper() == "K":
-                for ele in self._king_pos_array:
+                king_pos_array = self.check_king_moves(item)
+                for ele in king_pos_array:
                     if item + ele < 0 or item + ele > 63:
                         continue
                     if self._data[item + ele] is None:
@@ -353,21 +442,34 @@ class ChessBoard:
                         available_moves.append('k' + self.absolute2alpha_coord(item + ele))
                     elif self._data[item + ele].get_type().isupper() and self._turn == 1:
                         available_moves.append('k' + self.absolute2alpha_coord(item + ele))
-        return available_moves
+        avail_moves_temp = []
+        for item in available_moves:
+            print(item)
+            self.update(item)
+            if self._can_undo:
+                print(self.__str__())
+                avail_moves_temp.append(item)
+                self.undo_last_move()
+                print("after undoing")
+                print(self.__str__())
+        return avail_moves_temp
     
     def return_data(self):
         return self._data
 
     def update(self, move: str):
+        # can I delete this specific section?
         prev = []
         for item in self._data:
             prev.append(item)
+        captured_piece = None
         if move[-1] == '+' or move[-1] == '#' or move[-1] == "\n":
             move = move[0:-1]
         if move[-1].upper() == 'Q' or move[-1].upper() == 'R' or move[-1].upper() == 'B' or move[-1].upper() == 'N':
             type_to_promote_to = move[-1]
             if move[-3] == '8' or move[-3] == '1' and move[-2] == "=":
                 square_to = self.alpha2absolute_coord((move[-4], move[-3]))
+                # this sometimes doesn't work if the move is not legal
                 self.update(move[0:-2])
                 self._data[square_to].promote(type_to_promote_to)
         for i in range(0, len(move)):
@@ -382,6 +484,7 @@ class ChessBoard:
         moved = False
         if len(move) == 2 or (len(move) == 3 and move[0].upper() == 'P'):
             index_to = self.alpha2absolute_coord((move[-2], int(move[-1])))
+            captured_piece = self._data[index_to]
             if self._turn == -1:
                 one_away_index = self.alpha2absolute_coord((move[-2], int(move[-1]) - 1))
                 two_away_index = self.alpha2absolute_coord((move[-2], int(move[-1]) - 2))
@@ -420,10 +523,12 @@ class ChessBoard:
         # handle knight movement, including captures 
         elif move[0].upper() == "N":
             index_to = self.alpha2absolute_coord((move[-2], int(move[-1])))
+            captured_piece = self._data[index_to]
             column_correct = True
             if (move[1] != move[-2]) and move[1] != 'x':
                 column_correct = False
                 column = move[1]
+            knight_pos_array = self.check_knight_moves(index_to)
             if self._data[index_to] is not None:
                 if self._turn == -1 and self._data[index_to].get_type().isupper():
                     print("Cannot capture your own piece!")
@@ -431,7 +536,7 @@ class ChessBoard:
                 if self._turn == 1 and self._data[index_to].get_type().islower():
                     print("Cannot capture your own piece!")
                     return
-            for ele in self._knight_pos_array:
+            for ele in knight_pos_array:
                 item = index_to + ele
                 if item >0 and item <= 63:
                     piece_at = self._data[item]
@@ -458,6 +563,7 @@ class ChessBoard:
         # handle king movement, including captures
         elif move[0].upper() == "K": 
             index_to = self.alpha2absolute_coord((move[-2], int(move[-1])))
+            captured_piece = self._data[index_to]
             if self._data[index_to] is not None:
                 if self._turn == -1 and self._data[index_to].get_type().isupper():
                     print("Cannot capture your own piece!")
@@ -494,13 +600,21 @@ class ChessBoard:
         elif move[0].upper() == "O":
             if self._turn == -1:
                 if move == "O-O" and self._data[61] is None and self._data[62] is None:
+                    can_move = not self.checkxtwo('white', position = 60) and not self.checkxtwo('white', position = 61) and not self.checkxtwo('white', position = 62) and not self.checkxtwo('white', position = 63)
+                    if can_move == False:
+                        print("cannot move")
+                        return
                     self._data[62] = self._data[60]
-                    self._data[61] = self._data[64]
-                    self._data[61], self._data[62] = None, None
+                    self._data[61] = self._data[63]
+                    self._data[60], self._data[63] = None, None
                     self._white_king_pos = 62
                     moved = True
                     self._white_can_castle = False, False
                 elif move == "O-O-O" and self._data[57] is None and self._data[58] is None and self._data[59] is None:
+                    can_move = not self.checkxtwo('white', position = 57) and not self.checkxtwo('white', position = 58) and not self.checkxtwo('white', position = 59) and not self.checkxtwo('white', position = 60)
+                    can_move = can_move and not self.checkxtwo('white', position = 56)
+                    if can_move == False:
+                        return
                     self._data[58] = self._data[60]
                     self._data[57] = self._data[56]
                     self._data[60], self._data[56] = None, None
@@ -509,23 +623,33 @@ class ChessBoard:
                     self._white_can_castle = False, False
             elif self._turn == 1:
                 if move == "O-O-O" and self._data[1] is None and self._data[2] is None and self._data[3] is None:
+                    can_move = not self.checkxtwo('black', position = 0) and not self.checkxtwo('black', position = 1) and not self.checkxtwo('black', position = 2) and not self.checkxtwo('black', position = 3)
+                    can_move = can_move and not self.checkxtwo('black', position = 4)
+                    if can_move == False:
+                        return
                     self._data[2], self._data[3] = self._data[4], self._data[0]
                     self._black_king_pos = 2
                     self._data[4], self._data[0] = None, None
                     moved = True
                     self._black_can_castle = False, False
                 elif move == "O-O" and self._data[5] is None and self._data[6] is None:
+                    can_move = not self.checkxtwo('black', position = 4) and not self.checkxtwo('black', position = 5) and not self.checkxtwo('black', position = 6) and not self.checkxtwo('black', position = 7)
+                    if can_move == False:
+                        return
                     self._data[6], self._data[5] = self._data[4], self._data[7]
                     self._data[4], self._data[7] = None, None
                     self._black_king_pos = 6
                     moved = True
                     self._black_can_castle = False, False
+            check_index = None
+            index_to    = None
             if moved == False:
                 print("Move invalid!")
                 return
         # handle rook movement, including captures
         elif move[0].upper() == "R":
             index_to = self.alpha2absolute_coord((move[-2], int(move[-1])))
+            captured_piece = self._data[index_to]
             column_correct = True
             column = "$"
             if (len(move) == 4) and move[1] != 'x':
@@ -551,6 +675,7 @@ class ChessBoard:
         # handle bishop movement, including captures, so much recycled code
         elif move[0].upper() == "B":
             index_to = self.alpha2absolute_coord((move[-2], int(move[-1])))
+            captured_piece = self._data[index_to]
             if self._data[index_to] is not None:
                 if self._turn == -1 and self._data[index_to].get_type().isupper():
                     print("Cannot capture your own piece!")
@@ -571,6 +696,7 @@ class ChessBoard:
         # handle queen movement, including captures, even more recycled code
         elif move[0].upper() == "Q":
             index_to = self.alpha2absolute_coord((move[-2], int(move[-1])))
+            captured_piece = self._data[index_to]
             column_correct = True
             column = "$"
             if (len(move) == 4) and move[1] != 'x':
@@ -613,6 +739,7 @@ class ChessBoard:
                 print("Invalid Move!")
                 return
             index_to = self.alpha2absolute_coord((move[-2], int(move[-1])))
+            captured_piece = self._data[index_to]
             # this doesn't work with doubled pawns in some cases with en passant - handle later. also this never happens
             if move[0] < move[2] or move[0].upper() == "P":
                 if self._turn == -1 :
@@ -645,11 +772,34 @@ class ChessBoard:
             side = "white"
         if self._turn == 1:
             side = "black"
+        self._last_move_from = check_index
+        self._captured_piece = captured_piece
+        self._last_move_to   = index_to
+        self._can_undo = True
         if self.checkxtwo(side):
             self._data[check_index] = self._data[index_to]
-            self._data[index_to]    = None
+            self._data[index_to]    = captured_piece
+            self._can_undo = False
         else:
             self._turn *= -1
+
+    def undo_last_move(self):
+        if not self._can_undo:
+            return
+        self._data[self._last_move_from] = self._data[self._last_move_to]
+        self._data[self._last_move_to] = self._captured_piece
+        self._turn *= -1
+        if self._data[self._last_move_from] is None:
+            return
+        if self._data[self._last_move_from].get_type() == 'P' and self._last_move_from // 8 == 6:
+            self._data[self._last_move_from].update_move_twice_undo()
+        if self._data[self._last_move_from].get_type() == 'p' and self._last_move_from // 8 == 1:
+            self._data[self._last_move_from].update_move_twice_undo()
+        if self._data[self._last_move_from].get_en_passant():
+            self._data[self._last_move_from].update_en_passant()
+            self._en_passant_index = -1
+        self._can_undo = False
+
 
     def check_piece_in_file(self, index, file):
         match file:
@@ -690,7 +840,14 @@ class ChessBoard:
                 check_index += factor
                 if check_index < 0 or check_index > 63:
                     break
+                if (factor == -9 or factor == 7) and check_index % 8 == 0:
+                    break
+                if (factor == 9 or factor == -7) and check_index % 8 == 7:
+                    break
             if check_index < 0 or check_index > 63:
+                i += 1
+                continue
+            if self._data[check_index] is None:
                 i += 1
                 continue
             if (self._data[check_index].get_type() == type_of and self._turn == -1) or (self._data[check_index].get_type() == type_of.lower() and self._turn == 1):
@@ -714,7 +871,14 @@ class ChessBoard:
                 check_index += factor
                 if check_index < 0 or check_index > 63:
                     break
+                if factor == -1 and check_index % 8 == 0:
+                    break
+                if factor == 1 and check_index % 8 == 7:
+                    break
             if check_index < 0 or check_index > 63:
+                i += 1
+                continue
+            if self._data[check_index] is None:
                 i += 1
                 continue
             if not self.check_piece_in_file(check_index, column) and column != "$":
