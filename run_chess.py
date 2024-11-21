@@ -59,9 +59,6 @@ class ChessGUI:
         self.update_entry()
 
     def update_entry(self):
-        print("------------------------------------------------------------------------------")
-        print("NEW MOVE")
-        print("------------------------------------------------------------------------------")
         move = self._move_text_box.get(1.0, "end-1c")
         self._move_text_box.delete("1.0", "end")
         self._chess_board.update(move)
